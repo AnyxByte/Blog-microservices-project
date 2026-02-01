@@ -140,3 +140,37 @@ export const updateBlog = async (req, res) => {
     });
   }
 };
+
+export const deleteBlog = async (req, res) => {
+  try {
+    const id = req.params.id;
+
+    const blog = await sql`SELECT * FROM blogs WHERE id = ${id}`;
+
+    if (!blog.length) {
+      return res.status(400).json({
+        msg: "No blog found",
+      });
+    }
+
+    if (blog[0].author !== req.user?.id) {
+      return res.status(400).json({
+        msg: "unauthorized",
+      });
+    }
+
+    await sql`DELETE FROM blogs WHERE id = ${id}`;
+    await sql`DELETE FROM savedBlogs WHERE blogid = ${id}`;
+    await sql`DELETE FROM comments WHERE blogid = ${id}`;
+
+    return res.status(200).json({
+      msg: "blog deleted",
+    });
+  } catch (error) {
+    console.log("delete blog error:-", error);
+
+    return res.status(500).json({
+      msg: "server error",
+    });
+  }
+};
