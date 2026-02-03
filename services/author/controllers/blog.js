@@ -145,6 +145,12 @@ export const deleteBlog = async (req, res) => {
   try {
     const id = req.params.id;
 
+    if (!id) {
+      return res.status(400).json({
+        msg: "id missing",
+      });
+    }
+
     const blog = await sql`SELECT * FROM blogs WHERE id = ${id}`;
 
     if (!blog.length) {
