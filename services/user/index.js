@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import { connectDb } from "./utils/db.js";
 import userRouter from "./routes/user.js";
 import { v2 as cloudinary } from "cloudinary";
+import cors from "cors"
 
 const app = express();
 
@@ -19,6 +20,8 @@ const port = process.env.PORT || 5000;
 await connectDb();
 
 app.use(express.json());
+
+app.use(cors());
 
 app.get("/test", (req, res) => {
   return res.status(200).json({
