@@ -1,10 +1,20 @@
 import { sql } from "../utils/db.js";
 import axios, { AxiosHeaders } from "axios";
+import { redisClient } from "../index.js";
 
 export const getAllBlogs = async (req, res) => {
   try {
-    const { searchQuery, category } = req.query;
+    const { searchQuery = "", category = "" } = req.query;
     let blogs;
+
+    const cachedKey = `blogs:${searchQuery}:${category}`;
+
+    const cached = await redisClient.get(cachedKey);
+
+    if (cached) {
+      const parsedData = JSON.parse(cached);
+      return res.status(200).json(parsedData);
+    }
 
     if (searchQuery && category) {
       blogs =
@@ -18,6 +28,8 @@ export const getAllBlogs = async (req, res) => {
     } else {
       blogs = await sql`SELECT * FROM blogs ORDER BY created_at DESC`;
     }
+
+    await redisClient.setEx(cachedKey, 60, blogs);
 
     return res.status(200).json({
       blogs,
