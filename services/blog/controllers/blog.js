@@ -60,7 +60,24 @@ export const getSingleBlog = async (req, res) => {
       });
     }
 
-    const blog = await sql`SELECT * FROM  blogs WHERE id = ${req.params.id}`;
+    const cachedKey = `blog:${id}`;
+
+    let cachedData = await redisClient.get(cachedKey);
+
+    if (cachedData) {
+      console.log('serving from redis');
+      
+      cachedData = JSON.parse(cachedData);
+      return res.status(200).json(cachedData);
+    }
+
+    const blog = await sql`SELECT * FROM  blogs WHERE id = ${id}`;
+
+    if (blog.length === 0) {
+      return res.status(404).json({
+        msg: "no blog with this id",
+      });
+    }
 
     const userServiceUrl = process.env.USER_SERVICE;
     const authorId = blog[0].author;
@@ -76,6 +93,11 @@ export const getSingleBlog = async (req, res) => {
         },
       },
     );
+
+    const responseData = { blog: blog[0], author: response.data.user };
+
+    await redisClient.setEx(cachedKey, 3600, JSON.stringify(responseData));
+    console.log("serving from db");
 
     return res.status(200).json({
       blog: blog[0],
