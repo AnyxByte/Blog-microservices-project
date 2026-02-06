@@ -5,16 +5,19 @@ import { redisClient } from "../index.js";
 export const getAllBlogs = async (req, res) => {
   try {
     const { searchQuery = "", category = "" } = req.query;
-    let blogs;
 
     const cachedKey = `blogs:${searchQuery}:${category}`;
 
     const cached = await redisClient.get(cachedKey);
 
     if (cached) {
+      console.log("serving from redis");
+
       const parsedData = JSON.parse(cached);
       return res.status(200).json(parsedData);
     }
+
+    let blogs;
 
     if (searchQuery && category) {
       blogs =
@@ -25,11 +28,16 @@ export const getAllBlogs = async (req, res) => {
       blogs =
         await sql`SELECT * FROM blogs WHERE (title ILIKE ${"%" + searchQuery + "%"} OR description ILIKE ${"%" + searchQuery + "%"})
         ORDER BY created_at DESC`;
+    } else if (category) {
+      blogs = await sql`SELECT * FROM blogs WHERE category = ${category}
+        ORDER BY created_at DESC`;
     } else {
       blogs = await sql`SELECT * FROM blogs ORDER BY created_at DESC`;
     }
 
-    await redisClient.setEx(cachedKey, 60, blogs);
+    console.log("serving from db");
+
+    await redisClient.setEx(cachedKey, 3600, JSON.stringify(blogs));
 
     return res.status(200).json({
       blogs,
