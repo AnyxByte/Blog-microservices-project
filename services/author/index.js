@@ -5,6 +5,7 @@ import { v2 as cloudinary } from "cloudinary";
 import { sql } from "./utils/db.js";
 import blogRouter from "./routes/blog.js";
 import initDb from "./utils/initDb.js";
+import { connectRabbitMq } from "./utils/rabbitmq.js";
 
 const app = express();
 dotenv.config();
@@ -17,6 +18,8 @@ cloudinary.config({
 });
 
 await initDb();
+
+await connectRabbitMq();
 
 app.use(express.json());
 
